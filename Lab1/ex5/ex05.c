@@ -1,11 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 typedef struct ts{
     long int *tids;
     int n;
     int i;
+    sem_t *sem;
 }threadstr;
 
 void *threadfunct(void *par);
@@ -21,20 +23,24 @@ int main(int argc, char *argv[]){
     int rc;
     pthread_t tid1, tid2;
     void *status;
+
     
     threadstr str1, str2;
 
-    str1.i = str2.i = 0;
+    str1.i = str2.i = 1;
     str1.n = str2.n = n;
     str1.tids = (long int *)malloc(n*sizeof(long int));
     str2.tids = (long int *)malloc(n*sizeof(long int));
+    str1.sem = (sem_t *)malloc(sizeof(sem_t));
+    str2.sem = str1.sem;
 
-    if(str1.tids == NULL || str2.tids == NULL){
+    if(str1.tids == NULL || str2.tids == NULL || str1.sem == NULL){
         fprintf(stderr, "Memory allocation error.\n");
         return -1;
     }
 
-    str1.tids[str1.i] = str2.tids[str2.i] = (long int)pthread_self();
+    sem_init(str1.sem, 0, 1);
+    str1.tids[str1.i-1] = str2.tids[str2.i-1] = (long int)pthread_self();
 
     rc = pthread_create(&tid1,NULL, threadfunct, (void *) &str1);
     
@@ -55,7 +61,7 @@ int main(int argc, char *argv[]){
 
     free(str1.tids);
     free(str2.tids);
-
+    sem_destroy(str1.sem);
     return 0;
 }
 
@@ -71,8 +77,9 @@ void *threadfunct(void *par){
 
         str1.n = str2.n = str->n;
         str1.i = str2.i = str->i + 1;
-        str1.tids = (long int*) malloc(str1.n*sizeof(long int));
-        str2.tids = (long int*)malloc(str2.n*sizeof(long int));
+        str1.tids = (long int*) malloc(str->n*sizeof(long int));
+        str2.tids = (long int*)malloc(str->n*sizeof(long int));
+        str1.sem = str2.sem = str->sem;
 
         if(str1.tids == NULL || str2.tids == NULL){
             fprintf(stderr, "Memory allocation error.\n");
@@ -82,8 +89,8 @@ void *threadfunct(void *par){
         for(tmp = 0; tmp<str->n; tmp++)
             str1.tids[tmp] = str2.tids[tmp] = str->tids[tmp];
         
-        str1.tids[str1.i]=(long int) pthread_self();
-        str2.tids[str2.i]=(long int) pthread_self();
+        str1.tids[str1.i-1]=(long int) pthread_self();
+        str2.tids[str2.i-1]=(long int) pthread_self();
 
         rc1 = pthread_create(&tid1, NULL, threadfunct, (void *) &str1);
         rc2 = pthread_create(&tid2, NULL, threadfunct, (void *) &str2);
@@ -103,10 +110,14 @@ void *threadfunct(void *par){
     }
     else{
 
-        for(tmp=0; tmp < str->n; tmp++)
+        sem_wait(str->sem);
+
+        for(tmp=0; tmp < str->n; tmp++){
             printf("%ld ", str->tids[tmp]);
-        
+        }
         printf("\n");
+
+        sem_post(str->sem);
         pthread_exit((void *)0);
 
     }
