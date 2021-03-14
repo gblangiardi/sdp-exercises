@@ -7,7 +7,7 @@ void binary(int* vet, int n);
 int main(int argc, char *argv[]){
     
     if(argc != 2){
-        fprintf(stderr, "Wrong parameters number. Usage: %s n", argv[0]);
+        fprintf(stderr, "Wrong parameters number. Usage: %s n\n", argv[0]);
         return -1;
     }
 
@@ -21,7 +21,7 @@ int main(int argc, char *argv[]){
         return -1;
     }
 
-    printf("Binary numbers of size n:\n");
+    printf("Binary numbers of size %d:\n", n);
     binary(vet, n);
     free(vet);
 
@@ -30,5 +30,19 @@ int main(int argc, char *argv[]){
 }
 
 void binary(int* vet, int n){
-    
+    int i;
+
+    for(i=0; i<n; i++){
+        if(fork()){
+            vet[i]=1;
+        }
+        else
+            vet[i]=0;
+    }
+
+    for(i=0; i<n; i++)
+        printf("%d ", vet[i]);
+
+    printf("\n");
+    return;
 }
