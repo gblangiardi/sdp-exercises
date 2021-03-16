@@ -11,6 +11,9 @@
 *.obj
 *.elf
 
+#input files
+*.txt
+
 # Linker output
 *.ilk
 *.map
